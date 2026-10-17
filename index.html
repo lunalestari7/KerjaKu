@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KerjaKu - Asisten Kerja Harian</title>
+<style>
+:root{--green:#0f766e;--bg:#f1f5f9;--text:#1e293b}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+.app{max-width:850px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:22px}
+h1{margin:0;color:var(--green);font-size:27px}
+p{color:#64748b;font-size:13px}
+.card{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:15px}
+.hero{background:linear-gradient(130deg,#115e59,#0f766e);color:white;border-radius:15px;padding:22px;margin-bottom:15px}
+.hero p{color:#ccfbf1}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.stat{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:14px;min-width:0}
+.stat strong{display:block;font-size:25px;margin-top:9px}
+.muted{font-size:12px;color:#64748b}
+input,select,textarea,button{font:inherit;padding:11px;border-radius:8px}
+input,select,textarea{width:100%;border:1px solid #cbd5e1;background:white;color:#1e293b}
+label{display:block;font-size:13px;margin:12px 0 6px}
+button{border:0;cursor:pointer}
+.primary{background:var(--green);color:white;font-weight:bold}
+.secondary{background:#e2e8f0;color:#334155}
+.danger{background:#fee2e2;color:#b91c1c;padding:8px}
+form .primary{width:100%;margin-top:14px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}
+.tabs button{background:white;color:#334155}
+.tabs button.active{background:var(--green);color:white}
+.view{display:none}.view.active{display:block}
+.task{display:flex;align-items:flex-start;gap:10px;padding:13px 0;border-bottom:1px solid #e2e8f0}
+.task:last-child{border-bottom:0}
+.task input[type=checkbox]{width:17px;margin-top:3px;accent-color:var(--green)}
+.task-info{flex:1;min-width:0;overflow-wrap:anywhere}
+.done{text-decoration:line-through;color:#94a3b8}
+.tag{font-size:11px;padding:4px 7px;border-radius:5px;background:#fef3c7;color:#92400e}
+.tag.high{background:#fee2e2;color:#b91c1c}
+.tag.low{background:#dcfce7;color:#166534}
+.bar{height:8px;background:#e2e8f0;border-radius:9px;overflow:hidden;margin-top:10px}
+.bar div{height:100%;background:#0f766e}
+.empty{text-align:center;color:#94a3b8;padding:22px 0;font-size:13px}
+@media(max-width:500px){body{padding:10px}.card{padding:14px}.stat{padding:10px}.stat strong{font-size:21px}.grid{gap:7px}.hero{padding:17px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<div><h1>KerjaKu.</h1><p>Asisten kerja harianmu</p></div>
+<div style="text-align:right"><span>📋</span><p id="today"></p></div>
+</header>
+
+<div class="hero">
+<div>Halo! Siap produktif hari ini?</div>
+<h2 id="welcome" style="margin-bottom:5px">Mari mulai bekerja.</h2>
+<p>Atur tugasmu, selesaikan satu per satu.</p>
+</div>
+
+<div class="grid">
+<div class="stat"><span class="muted">Total tugas</span><strong id="total">0</strong></div>
+<div class="stat"><span class="muted">Belum selesai</span><strong id="pending" style="color:#d97706">0</strong></div>
+<div class="stat"><span class="muted">Selesai</span><strong id="completed" style="color:#059669">0</strong></div>
+</div>
+
+<div class="card">
+<div style="display:flex;justify-content:space-between;gap:8px">
+<strong>Progres pekerjaan</strong><strong id="percent">0%</strong>
+</div>
+<div class="bar"><div id="progress" style="width:0%"></div></div>
+</div>
+
+<div class="tabs">
+<button class="active" data-tab="tasks">Daftar tugas</button>
+<button data-tab="schedule">Jadwal</button>
+<button data-tab="notes">Catatan</button>
+</div>
+
+<section id="tasks" class="view active">
+<div class="card">
+<h3 style="margin-top:0">+ Tambah pekerjaan</h3>
+<form id="taskForm">
+<label>Nama pekerjaan</label>
+<input id="taskName" placeholder="Contoh: Menyelesaikan laporan" maxlength="120" required>
+<div class="formgrid">
+<div><label>Tenggat</label><input id="taskDate" type="date"></div>
+<div><label>Prioritas</label>
+<select id="priority"><option value="Biasa">Biasa</option><option value="Penting">Penting</option><option value="Mendesak">Mendesak</option></select>
+</div>
+</div>
+<button class="primary">Simpan tugas</button>
+</form>
+</div>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+<h3>Daftar pekerjaan</h3>
+<select id="filter" style="width:auto;max-width:145px">
+<option value="all">Semua</option>
+<option value="pending">Belum selesai</option>
+<option value="done">Selesai</option>
+</select>
+</div>
+<div id="taskList"></div>
+</div>
+</section>
+
+<section id="schedule" class="view">
+<div class="card">
+<h3>Jadwal pekerjaan</h3>
+<p>Daftar tugas berdasarkan tenggat terdekat.</p>
+<div id="scheduleList"></div>
+</div>
+</section>
+
+<section id="notes" class="view">
+<div class="card">
+<h3>Catatan singkat</h3>
+<form id="noteForm">
+<label>Judul catatan</label>
+<input id="noteTitle" placeholder="Contoh: Ide rapat" maxlength="100" required>
+<label>Isi catatan</label>
+<textarea id="noteBody" rows="4" maxlength="3000" placeholder="Tulis informasi penting..." required></textarea>
+<button class="primary">Simpan catatan</button>
+</form>
+</div>
+<div class="card"><h3>Catatan tersimpan</h3><div id="noteList"></div></div>
+</section>
+
+<p style="text-align:center">KerjaKu · Bekerja lebih teratur setiap hari</p>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const KEY="kerjaku-simple-v1";
+const now=()=>{
+ const d=new Date();
+ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let tasks=[],notes=[],counter=1;
+
+try{
+ const d=JSON.parse(localStorage.getItem(KEY)||"null");
+ if(d){if(Array.isArray(d.tasks))tasks=d.tasks;if(Array.isArray(d.notes))notes=d.notes;}
+}catch(e){}
+
+$("today").textContent=new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
+$("taskDate").value=now();
+
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify({tasks,notes}));}
+ catch(e){alert("Data tidak bisa disimpan di browser.");}
+}
+function empty(s){return '<div class="empty">'+s+'</div>';}
+function dateText(s){
+ if(!s)return "Tanpa tenggat";
+ const d=new Date(s+"T12:00:00");
+ return isNaN(d) ? esc(s) : d.toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
+}
+function taskHTML(t){
+ let cls=t.priority==="Mendesak"?"high":t.priority==="Biasa"?"low":"";
+ return `<div class="task">
+ <input type="checkbox" data-check="${esc(t.id)}" ${t.done?"checked":""} aria-label="Tandai selesai">
+ <div class="task-info">
+ <div class="${t.done?"done":""}" style="font-weight:bold;font-size:14px">${esc(t.name)}</div>
+ <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+ <span class="tag ${cls}">${esc(t.priority)}</span>
+ <span class="muted">${dateText(t.date)}</span>
+ </div></div>
+ <button class="danger" data-delete="${esc(t.id)}">Hapus</button>
+ </div>`;
+}
+function render(){
+ const completed=tasks.filter(t=>t.done).length;
+ const pending=tasks.length-completed;
+ const percent=tasks.length?Math.round(completed/tasks.length*100):0;
+ $("total").textContent=tasks.length;
+ $("pending").textContent=pending;
+ $("completed").textContent=completed;
+ $("percent").textContent=percent+"%";
+ $("progress").style.width=percent+"%";
+ $("welcome").textContent=pending===0&&tasks.length>0?"Semua tugas selesai!":"Ada "+pending+" tugas menunggu.";
+
+ const filter=$("filter").value;
+ const shown=tasks.filter(t=>filter==="all"||(filter==="done"?t.done:!t.done));
+ $("taskList").innerHTML=shown.length?shown.slice().reverse().map(taskHTML).join(""):empty("Belum ada tugas. Tambahkan pekerjaan pertamamu!");
+
+ const sorted=tasks.filter(t=>t.date).slice().sort((a,b)=>a.date.localeCompare(b.date));
+ $("scheduleList").innerHTML=sorted.length?sorted.map(taskHTML).join(""):empty("Belum ada tugas dengan tenggat waktu.");
+
+ $("noteList").innerHTML=notes.length?notes.slice().reverse().map(n=>`
+ <div class="task"><div class="task-info">
+ <strong>${esc(n.title)}</strong>
+ <p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(n.body)}</p>
+ <span class="muted">${esc(n.date)}</span></div>
+ <button class="danger" data-note-delete="${esc(n.id)}">Hapus</button></div>
+ `).join(""):empty("Belum ada catatan.");
+}
+function navigate(id){
+ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
+ document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
+}
+document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.tab)));
+
+$("taskForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ tasks.push({
+ id:Date.now().toString()+Math.random().toString(36).slice(2),
+ name:$("taskName").value.trim(),
+ date:$("taskDate").value,
+ priority:$("priority").value,
+ done:false
+ });
+ save();render();$("taskForm").reset();$("taskDate").value=now();
+});
+$("filter").addEventListener("change",render);
+
+document.body.addEventListener("change",e=>{
+ const id=e.target.dataset.check;
+ if(id===undefined)return;
+ const t=tasks.find(t=>t.id===id);
+ if(t){t.done=e.target.checked;save();render();}
+});
+document.body.addEventListener("click",e=>{
+ const b=e.target.closest("button");
+ if(!b)return;
+ if(b.dataset.delete!==undefined){
+  tasks=tasks.filter(t=>t.id!==b.dataset.delete);save();render();
+ }
+ if(b.dataset.noteDelete!==undefined){
+  notes=notes.filter(n=>n.id!==b.dataset.noteDelete);save();render();
+ }
+});
+$("noteForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ notes.push({
+ id:Date.now().toString()+Math.random().toString(36).slice(2),
+ title:$("noteTitle").value.trim(),
+ body:$("noteBody").value.trim(),
+ date:new Date().toLocaleDateString("id-ID")
+ });
+ save();render();$("noteForm").reset();
+});
+render();
+</script>
+</body>
+</html>
